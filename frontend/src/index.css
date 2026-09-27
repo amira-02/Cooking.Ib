@@ -1,1 +1,21 @@
 @import "tailwindcss";
+
+@theme {
+  --color-cream: #FBF6EF;
+  --color-beige: #EDE0D3;
+  --color-rose: #D9A8A0;
+  --color-rose-dark: #C48F86;
+  --color-ink: #3A2A24;
+  --color-ink-light: #8C6E58;
+
+  --font-serif: "Fraunces", serif;
+  --font-sans: "Inter", sans-serif;
+}
+
+body {
+  @apply bg-cream text-ink font-sans;
+}
+
+h1, h2, h3 {
+  @apply font-serif;
+}

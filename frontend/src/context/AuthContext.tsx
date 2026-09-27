@@ -21,7 +21,7 @@ interface AuthContextType {
     lastName: string,
     phone: string
   ) => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<import("firebase/auth").UserCredential>;
   logout: () => Promise<void>;
 }
 
@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function login(email: string, password: string) {
-    await signInWithEmailAndPassword(auth, email, password);
+    return signInWithEmailAndPassword(auth, email, password);
   }
 
   async function logout() {

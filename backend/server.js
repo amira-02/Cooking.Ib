@@ -1,38 +1,18 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
-const admin = require("firebase-admin");
-const serviceAccount = require("./serviceAccountKey.json");
-
-// Initialisation Firebase Admin
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
-
-const db = admin.firestore();
+require("./config/firebase"); // initialise Firebase Admin
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Route de test
 app.get("/", (req, res) => {
   res.json({ message: "API Cooking.Ib en ligne 🍰" });
 });
 
-// Route de test Firestore : liste les produits
-app.get("/api/products", async (req, res) => {
-  try {
-    const snapshot = await db.collection("products").get();
-    const products = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-    res.json(products);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+app.use("/api/categories", require("./routes/categories"));
+app.use("/api/products", require("./routes/products"));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

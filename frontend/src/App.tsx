@@ -1,22 +1,40 @@
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import AdminRoute from "./components/AdminRoute";
+import Navbar from "./components/Navbar";
 import Products from "./pages/Products";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminCategories from "./pages/AdminCategories";
+import Home from "./pages/Home";
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <nav style={{ display: "flex", gap: "1rem", padding: "1rem" }}>
-          <Link to="/">Produits</Link>
-          <Link to="/login">Connexion</Link>
-          <Link to="/register">Inscription</Link>
-        </nav>
+        <Navbar />
         <Routes>
-          <Route path="/" element={<Products />} />
+          <Route path="/" element={<Home />} />
+          <Route path="/produits" element={<Products />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/categories"
+            element={
+              <AdminRoute>
+                <AdminCategories />
+              </AdminRoute>
+            }
+          />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

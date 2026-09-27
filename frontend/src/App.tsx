@@ -2,12 +2,13 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import AdminRoute from "./components/AdminRoute";
 import Navbar from "./components/Navbar";
-import Products from "./pages/Products";
-import Register from "./pages/Register";
-import Login from "./pages/Login";
-import AdminDashboard from "./pages/AdminDashboard";
-import AdminCategories from "./pages/AdminCategories";
-import Home from "./pages/Home";
+import Products from "./pages/client/Products";
+import Register from "./pages/client/Register";
+import Login from "./pages/client/Login";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminCategories from "./pages/admin/AdminCategories";
+import Home from "./pages/client/Home";
+import AdminProducts from "./pages/admin/AdminProducts";
 
 function App() {
   return (
@@ -32,6 +33,14 @@ function App() {
             element={
               <AdminRoute>
                 <AdminCategories />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/products"
+            element={
+              <AdminRoute>
+                <AdminProducts />
               </AdminRoute>
             }
           />

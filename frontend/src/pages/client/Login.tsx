@@ -1,16 +1,13 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 
-function Register() {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [phone, setPhone] = useState("");
+function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   async function handleSubmit(e: React.FormEvent) {
@@ -18,10 +15,10 @@ function Register() {
     setError("");
     setLoading(true);
     try {
-      await register(email, password, firstName, lastName, phone);
+      await login(email, password);
       navigate("/");
     } catch (err: any) {
-      setError(err.message);
+      setError("Email ou mot de passe incorrect");
     } finally {
       setLoading(false);
     }
@@ -29,12 +26,9 @@ function Register() {
 
   return (
     <div style={{ maxWidth: "400px", margin: "3rem auto", padding: "1rem" }}>
-      <h1>Créer un compte</h1>
+      <h1>Connexion</h1>
       {error && <p style={{ color: "red" }}>{error}</p>}
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-        <input placeholder="Prénom" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
-        <input placeholder="Nom" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
-        <input placeholder="Téléphone" value={phone} onChange={(e) => setPhone(e.target.value)} required />
         <input
           type="email"
           placeholder="Email"
@@ -44,21 +38,20 @@ function Register() {
         />
         <input
           type="password"
-          placeholder="Mot de passe (min 6 caractères)"
+          placeholder="Mot de passe"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          minLength={6}
         />
         <button type="submit" disabled={loading}>
-          {loading ? "Création..." : "Créer mon compte"}
+          {loading ? "Connexion..." : "Se connecter"}
         </button>
       </form>
       <p>
-        Déjà un compte ? <Link to="/login">Se connecter</Link>
+        Pas encore de compte ? <Link to="/register">Créer un compte</Link>
       </p>
     </div>
   );
 }
 
-export default Register;
+export default Login;

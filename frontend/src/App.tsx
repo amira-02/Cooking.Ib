@@ -5,6 +5,7 @@ import Navbar from "./components/Navbar";
 import Products from "./pages/client/Products";
 import Register from "./pages/client/Register";
 import Login from "./pages/client/Login";
+import VerifyEmail from "./pages/client/VerifyEmail";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminCategories from "./pages/admin/AdminCategories";
 import Home from "./pages/client/Home";
@@ -20,6 +21,7 @@ function App() {
           <Route path="/produits" element={<Products />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
           <Route
             path="/admin"
             element={

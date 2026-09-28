@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 
 function Login() {
@@ -7,21 +8,36 @@ function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, sendVerificationCode } = useAuth();
   const navigate = useNavigate();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
+    let result;
     try {
-      await login(email, password);
-      navigate("/");
+      result = await login(email, password);
     } catch (err: any) {
       setError("Email ou mot de passe incorrect");
-    } finally {
       setLoading(false);
+      return;
     }
+    if (result.user.emailVerified) {
+      navigate("/");
+      return;
+    }
+    // Email pas encore vérifié : on envoie un code (une erreur 429 signifie
+    // qu'un code a été envoyé il y a moins d'une minute, il reste valable)
+    let sendError = "";
+    try {
+      await sendVerificationCode();
+    } catch (err) {
+      if (!axios.isAxiosError(err) || err.response?.status !== 429) {
+        sendError = "Le code n'a pas pu être envoyé, cliquez sur « Renvoyer le code »";
+      }
+    }
+    navigate("/verify-email", { state: { sendError } });
   }
 
   return (

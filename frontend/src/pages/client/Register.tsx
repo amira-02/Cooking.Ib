@@ -10,7 +10,7 @@ function Register() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
+  const { register, sendVerificationCode } = useAuth();
   const navigate = useNavigate();
 
   async function handleSubmit(e: React.FormEvent) {
@@ -19,12 +19,20 @@ function Register() {
     setLoading(true);
     try {
       await register(email, password, firstName, lastName, phone);
-      navigate("/");
     } catch (err: any) {
       setError(err.message);
-    } finally {
       setLoading(false);
+      return;
     }
+    // Le compte existe déjà à ce stade : si l'envoi échoue, l'utilisateur
+    // pourra renvoyer le code depuis la page de vérification
+    let sendError = "";
+    try {
+      await sendVerificationCode();
+    } catch {
+      sendError = "Le code n'a pas pu être envoyé, cliquez sur « Renvoyer le code »";
+    }
+    navigate("/verify-email", { state: { sendError } });
   }
 
   return (

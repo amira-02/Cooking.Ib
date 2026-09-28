@@ -8,11 +8,16 @@ import {
 } from "firebase/auth";
 import type { User } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
+import axios from "axios";
 import { auth, db } from "../firebase";
+import { API_URL } from "../config/api";
+
+const OTP_ENDPOINT = `${API_URL}/api/otp`;
 
 interface AuthContextType {
   currentUser: User | null;
   role: string | null;
+  emailVerified: boolean;
   loading: boolean;
   register: (
     email: string,
@@ -23,6 +28,8 @@ interface AuthContextType {
   ) => Promise<void>;
   login: (email: string, password: string) => Promise<import("firebase/auth").UserCredential>;
   logout: () => Promise<void>;
+  sendVerificationCode: () => Promise<void>;
+  verifyEmailCode: (code: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,6 +37,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [role, setRole] = useState<string | null>(null);
+  const [emailVerified, setEmailVerified] = useState(false);
   const [loading, setLoading] = useState(true);
 
   async function register(
@@ -59,9 +67,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signOut(auth);
   }
 
+  async function getAuthHeader() {
+    const token = await auth.currentUser?.getIdToken();
+    return { Authorization: `Bearer ${token}` };
+  }
+
+  async function sendVerificationCode() {
+    await axios.post(`${OTP_ENDPOINT}/send`, {}, { headers: await getAuthHeader() });
+  }
+
+  async function verifyEmailCode(code: string) {
+    await axios.post(`${OTP_ENDPOINT}/verify`, { code }, { headers: await getAuthHeader() });
+    // Le backend a mis emailVerified à true : on recharge l'utilisateur et on
+    // force un nouveau token pour qu'il contienne email_verified = true
+    await auth.currentUser?.reload();
+    await auth.currentUser?.getIdToken(true);
+    setEmailVerified(auth.currentUser?.emailVerified ?? false);
+  }
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
+      setEmailVerified(user?.emailVerified ?? false);
       if (user) {
         const userDoc = await getDoc(doc(db, "users", user.uid));
         setRole(userDoc.exists() ? userDoc.data().role : "client");
@@ -74,7 +101,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ currentUser, role, loading, register, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        currentUser,
+        role,
+        emailVerified,
+        loading,
+        register,
+        login,
+        logout,
+        sendVerificationCode,
+        verifyEmailCode,
+      }}
+    >
       {!loading && children}
     </AuthContext.Provider>
   );

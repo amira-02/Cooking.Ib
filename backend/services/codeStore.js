@@ -38,6 +38,11 @@ async function createCode(collectionName, key) {
   return code;
 }
 
+// Annule un code dont l'email n'a pas pu partir (sinon le délai de renvoi bloquerait un nouvel essai)
+async function discardCode(collectionName, key) {
+  await db.collection(collectionName).doc(key).delete();
+}
+
 // Vérifie un code. Transaction : impossible de dépasser MAX_ATTEMPTS avec des requêtes parallèles.
 // `onSuccess(tx, docRef)` remplace la suppression par défaut (ex : poser un jeton de réinitialisation).
 async function verifyCode(collectionName, key, code, onSuccess) {
@@ -72,4 +77,4 @@ async function verifyCode(collectionName, key, code, onSuccess) {
   if (result !== "ok") throw httpError(errors[result][0], result, errors[result][1]);
 }
 
-module.exports = { CODE_TTL_MS, httpError, hash, safeEqual, createCode, verifyCode };
+module.exports = { CODE_TTL_MS, httpError, hash, safeEqual, createCode, discardCode, verifyCode };

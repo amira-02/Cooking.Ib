@@ -11,6 +11,7 @@ const OTP_MESSAGES: Record<string, string> = {
   invalid_format: "Le code doit contenir 6 chiffres.",
   invalid_token: "Ce lien de réinitialisation a expiré. Recommencez la procédure.",
   network: "Connexion au serveur impossible. Vérifiez votre connexion internet.",
+  email_failed: "L'email n'a pas pu être envoyé. Réessayez dans quelques instants.",
 };
 
 export function otpErrorMessage(error: unknown) {

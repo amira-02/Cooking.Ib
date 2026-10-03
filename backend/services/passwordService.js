@@ -1,7 +1,7 @@
 const crypto = require("crypto");
 const { db, auth } = require("../config/firebase");
 const transporter = require("../config/mailer");
-const { createCode, verifyCode, httpError, hash, safeEqual } = require("./codeStore");
+const { createCode, discardCode, verifyCode, httpError, hash, safeEqual } = require("./codeStore");
 const { codeEmail } = require("./emailTemplates");
 
 // Mot de passe oublié : code par email -> jeton de réinitialisation (15 min) -> nouveau mot de passe
@@ -22,12 +22,17 @@ async function requestReset(email) {
   const user = await findUser(email);
   if (!user) return;
   const code = await createCode(COLLECTION, user.uid);
-  await transporter.sendMail({
-    from: process.env.MAIL_FROM || process.env.SMTP_USER,
-    to: user.email,
-    subject: "Réinitialisation de votre mot de passe Cooking Ib",
-    ...codeEmail({ code, intro: "Voici votre code pour réinitialiser votre mot de passe :" }),
-  });
+  try {
+    await transporter.sendMail({
+      from: process.env.MAIL_FROM || process.env.SMTP_USER,
+      to: user.email,
+      subject: "Réinitialisation de votre mot de passe Cooking Ib",
+      ...codeEmail({ code, intro: "Voici votre code pour réinitialiser votre mot de passe :" }),
+    });
+  } catch (error) {
+    await discardCode(COLLECTION, user.uid);
+    throw error;
+  }
 }
 
 // Code correct -> renvoie un jeton à usage unique pour choisir le nouveau mot de passe

@@ -51,7 +51,15 @@ function createSmtpMailer() {
   });
 }
 
-const transport = process.env.BREVO_API_KEY ? createBrevoMailer(process.env.BREVO_API_KEY) : createSmtpMailer();
+// Les espaces / retours à la ligne copiés par erreur autour de la clé sont ignorés
+const brevoKey = (process.env.BREVO_API_KEY || "").trim();
+if (brevoKey.startsWith("xsmtpsib-")) {
+  console.error(
+    "BREVO_API_KEY contient une clé SMTP (xsmtpsib-…). Il faut une clé API (xkeysib-…) : Brevo > SMTP et API > onglet « Clés API »."
+  );
+}
+
+const transport = brevoKey ? createBrevoMailer(brevoKey) : createSmtpMailer();
 
 // Le détail technique reste dans les logs du serveur ; le client reçoit un message clair
 const mailer = {
@@ -68,6 +76,6 @@ const mailer = {
   },
 };
 
-console.log(`Envoi des emails via ${process.env.BREVO_API_KEY ? "l'API Brevo" : "SMTP"}`);
+console.log(`Envoi des emails via ${brevoKey ? `l'API Brevo (clé ${brevoKey.slice(0, 8)}…, ${brevoKey.length} caractères)` : "SMTP"}`);
 
 module.exports = mailer;

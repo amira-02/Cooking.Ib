@@ -5,7 +5,7 @@ async function uploadImages(req, res) {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: "Aucune image reçue" });
     }
-    const urls = await uploadService.uploadImages(req.files);
+    const urls = await uploadService.uploadImages(req.files, req.query.dossier);
     res.status(201).json({ urls });
   } catch (error) {
     res.status(500).json({ error: error.message });

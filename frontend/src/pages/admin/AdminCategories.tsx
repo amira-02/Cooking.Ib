@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { Pencil, Trash2, X } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import AdminLayout from "../../components/AdminLayout";
 import { API_URL } from "../../config/api";
 
 const CATEGORIES_ENDPOINT = `${API_URL}/api/categories`;
@@ -95,8 +94,7 @@ function AdminCategories() {
   }
 
   return (
-    <AdminLayout>
-      <h1 className="font-serif text-3xl text-ink mb-1">Catégories</h1>
+    <div>
       <p className="text-ink-light text-sm mb-8">
         Organise tes gâteaux par famille — anniversaire, mariage, etc.
       </p>
@@ -217,7 +215,7 @@ function AdminCategories() {
           </table>
         </div>
       )}
-    </AdminLayout>
+    </div>
   );
 }
 

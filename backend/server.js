@@ -18,6 +18,8 @@ app.use("/api/otp", require("./routes/otp"));
 app.use("/api/password", require("./routes/password"));
 app.use("/api/homepage", require("./routes/homepage"));
 app.use("/api/admin", require("./routes/admin"));
+app.use("/api/orders", require("./routes/orders"));
+app.use("/api/cart", require("./routes/cart"));
 app.use("/api/track", require("./routes/track"));
 
 const PORT = process.env.PORT || 5000;

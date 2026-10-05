@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ChefHat, ChevronRight, Clock, PackageCheck } from "lucide-react";
+import { CalendarClock, ChefHat, ChevronRight, Clock, PackageCheck } from "lucide-react";
 import Card from "../ui/Card";
 import { ErrorState, Skeleton } from "../ui/States";
 import type { OrdersToProcess as Counts } from "../../types";
@@ -12,13 +12,15 @@ interface OrdersToProcessProps {
 }
 
 const ROWS = [
-  { key: "pending", label: "En attente de validation", hint: "À confirmer", icon: Clock, status: "pending", tone: "bg-amber-50 text-amber-700" },
-  { key: "preparing", label: "À préparer", hint: "Confirmées ou en cours", icon: ChefHat, status: "to_prepare", tone: "bg-violet-50 text-violet-700" },
-  { key: "ready", label: "Prêtes", hint: "À remettre ou expédier", icon: PackageCheck, status: "ready", tone: "bg-teal-50 text-teal-700" },
+  { key: "pending", label: "Précommandes à valider", hint: "À confirmer ou annuler", icon: Clock, status: "PENDING", tone: "bg-amber-50 text-amber-700" },
+  { key: "toPrepare", label: "À préparer", hint: "Créneau et paiement choisis", icon: ChefHat, status: "CONFIRMED", tone: "bg-violet-50 text-violet-700" },
+  { key: "ready", label: "Prêtes", hint: "À remettre au client", icon: PackageCheck, status: "READY_FOR_PICKUP", tone: "bg-teal-50 text-teal-700" },
+  { key: "awaitingCustomer", label: "En attente du client", hint: "Choix du créneau en cours", icon: CalendarClock, status: "AWAITING_CUSTOMER_SELECTION", tone: "bg-sky-50 text-sky-700" },
 ] as const;
 
 function OrdersToProcess({ data, loading, error, onRetry }: OrdersToProcessProps) {
-  const total = data ? data.pending + data.preparing + data.ready : 0;
+  // Les commandes « en attente du client » ne demandent pas d'action de la pâtisserie
+  const total = data ? data.pending + data.toPrepare + data.ready : 0;
   return (
     <Card
       title="À traiter aujourd'hui"

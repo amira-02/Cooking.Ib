@@ -10,6 +10,7 @@ async function verifyToken(req, res, next) {
   try {
     const decoded = await auth.verifyIdToken(token);
     req.uid = decoded.uid;
+    req.user = { uid: decoded.uid, email: decoded.email || "", emailVerified: decoded.email_verified === true };
     next();
   } catch (error) {
     return res.status(401).json({ error: "Token invalide" });

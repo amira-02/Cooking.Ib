@@ -20,6 +20,7 @@ const OTP_ENDPOINT = `${API_URL}/api/otp`;
 interface UserProfile {
   firstName: string;
   lastName: string;
+  phone?: string;
 }
 
 interface AuthContextType {
@@ -71,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     // Le profil vient d'être créé : on le met à jour sans attendre un nouveau chargement
     setRole("client");
-    setProfile({ firstName, lastName });
+    setProfile({ firstName, lastName, phone });
     return result.user;
   }
 
@@ -147,7 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userDoc = await getDoc(doc(db, "users", user.uid));
         const data = userDoc.exists() ? userDoc.data() : null;
         setRole(data?.role ?? "client");
-        setProfile(data ? { firstName: data.firstName ?? "", lastName: data.lastName ?? "" } : null);
+        setProfile(data ? { firstName: data.firstName ?? "", lastName: data.lastName ?? "", phone: data.phone ?? "" } : null);
       } else {
         setRole(null);
         setProfile(null);

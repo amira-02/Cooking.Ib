@@ -1,5 +1,7 @@
-import { CUSTOMER_STATUS, ORDER_STATUS, STOCK_STATUS } from "../../constants";
-import type { CustomerStatus, OrderStatus, StockStatus } from "../../types";
+import { CUSTOMER_STATUS, STOCK_STATUS } from "../../constants";
+import type { CustomerStatus, StockStatus } from "../../types";
+// Badge de statut de commande : composant partagé avec la boutique
+export { OrderStatusBadge } from "../../../components/order/OrderBits";
 
 function Badge({ label, className, dot }: { label: string; className: string; dot?: string }) {
   return (
@@ -10,11 +12,6 @@ function Badge({ label, className, dot }: { label: string; className: string; do
       {label}
     </span>
   );
-}
-
-export function OrderStatusBadge({ status }: { status: OrderStatus }) {
-  const meta = ORDER_STATUS[status];
-  return <Badge label={meta.label} className={meta.badge} dot={meta.dot} />;
 }
 
 export function StockBadge({ status, stock }: { status: StockStatus; stock?: number }) {

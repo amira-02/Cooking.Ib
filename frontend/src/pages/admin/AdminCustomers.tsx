@@ -94,11 +94,11 @@ function CustomerDrawer({ customerId, onClose }: { customerId: string | null; on
                   <li key={o.id}>
                     <Link to={`/admin/orders?commande=${o.id}`} className="flex items-center justify-between gap-3 p-3 transition-colors hover:bg-cream/60">
                       <span className="min-w-0">
-                        <span className="block text-[13px] font-medium text-ink">{o.number}</span>
+                        <span className="block text-[13px] font-medium text-ink">{o.orderNumber}</span>
                         <span className="block text-xs text-ink-light">{formatDate(o.createdAt)} · {o.items.reduce((s, i) => s + i.quantity, 0)} article(s)</span>
                       </span>
                       <span className="flex shrink-0 flex-col items-end gap-1">
-                        <span className="text-[13px] font-semibold text-ink">{formatPrice(o.total)}</span>
+                        <span className="text-[13px] font-semibold text-ink">{formatPrice(o.totalAmount)}</span>
                         <OrderStatusBadge status={o.status} />
                       </span>
                     </Link>

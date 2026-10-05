@@ -10,7 +10,6 @@ import OrderDetailDrawer from "../../admin/components/orders/OrderDetailDrawer";
 import { useAsync } from "../../admin/hooks/useAsync";
 import { useDebounced } from "../../admin/hooks/useDebounced";
 import { getOrders } from "../../admin/services/dashboardService";
-import { ORDER_STATUS } from "../../admin/constants";
 import type { OrdersQuery } from "../../admin/types";
 
 type StatusFilter = NonNullable<OrdersQuery["status"]>;
@@ -18,13 +17,13 @@ type SortKey = NonNullable<OrdersQuery["sortBy"]>;
 
 const STATUS_CHIPS: { value: StatusFilter; label: string }[] = [
   { value: "all", label: "Toutes" },
-  { value: "pending", label: ORDER_STATUS.pending.label },
-  { value: "to_prepare", label: "À préparer" },
-  { value: "ready", label: ORDER_STATUS.ready.label },
-  { value: "delivered", label: ORDER_STATUS.delivered.label },
-  { value: "cancelled", label: ORDER_STATUS.cancelled.label },
-  { value: "confirmed", label: ORDER_STATUS.confirmed.label },
-  { value: "preparing", label: ORDER_STATUS.preparing.label },
+  { value: "PENDING", label: "En attente" },
+  { value: "confirmed_any", label: "Confirmées" },
+  { value: "AWAITING_CUSTOMER_SELECTION", label: "Choix client" },
+  { value: "CONFIRMED", label: "À préparer" },
+  { value: "READY_FOR_PICKUP", label: "Prêtes" },
+  { value: "COMPLETED", label: "Terminées" },
+  { value: "CANCELLED", label: "Annulées" },
 ];
 
 const PAGE_SIZE = 10;
@@ -119,7 +118,7 @@ function AdminOrders() {
                 setParam("q", e.target.value || null);
                 setPage(1);
               }}
-              placeholder="N° de commande, nom ou email du client…"
+              placeholder="N° de commande, code de retrait, nom ou email…"
               aria-label="Rechercher une commande"
               className={`${inputClass} pl-10`}
             />

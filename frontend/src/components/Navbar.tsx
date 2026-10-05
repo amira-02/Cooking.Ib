@@ -67,8 +67,7 @@ function Navbar() {
 
   function handleProfileClick() {
     if (!currentUser) navigate("/login");
-    else if (role === "admin") navigate("/admin");
-    else navigate("/");
+    else navigate(role === "admin" ? "/admin" : "/mes-commandes");
   }
 
   async function handleLogout() {
@@ -250,7 +249,7 @@ function Navbar() {
                   className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full border border-ink/20 text-sm text-ink"
                 >
                   <User size={16} strokeWidth={1.6} />
-                  {currentUser ? (role === "admin" ? "Administration" : "Mon compte") : "Se connecter"}
+                  {currentUser ? (role === "admin" ? "Administration" : "Mes commandes") : "Se connecter"}
                 </button>
                 {currentUser && (
                   <button

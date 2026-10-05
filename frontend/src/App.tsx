@@ -9,6 +9,10 @@ import ScrollManager from "./components/ScrollManager";
 import VisitTracker from "./components/VisitTracker";
 import Products from "./pages/client/Products";
 import ProductDetail from "./pages/client/ProductDetail";
+import CartPage from "./pages/client/CartPage";
+import CheckoutPage from "./pages/client/CheckoutPage";
+import MyOrdersPage from "./pages/client/MyOrdersPage";
+import OrderPage from "./pages/client/OrderPage";
 import AuthLayout from "./components/auth/AuthLayout";
 import SignIn from "./pages/auth/SignIn";
 import SignUp from "./pages/auth/SignUp";
@@ -51,6 +55,10 @@ function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/produits" element={<Products />} />
                 <Route path="/produits/:id" element={<ProductDetail />} />
+                <Route path="/panier" element={<CartPage />} />
+                <Route path="/precommande" element={<CheckoutPage />} />
+                <Route path="/mes-commandes" element={<MyOrdersPage />} />
+                <Route path="/mes-commandes/:id" element={<OrderPage />} />
                 {/* Authentification : image à gauche, formulaire à droite */}
                 <Route element={<AuthLayout />}>
                   <Route path="/login" element={<SignIn />} />

@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import axios from "axios";
-import { ArrowLeft, Minus, Plus } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import QuantitySelector from "../../components/cart/QuantitySelector";
+import { useShop } from "../../context/ShopContext";
 import { API_URL } from "../../config/api";
 import { formatPrice } from "../../utils/formatPrice";
 import AddToCartButton from "../../components/product/AddToCartButton";
@@ -23,6 +25,7 @@ function ProductDetail() {
   const [notFound, setNotFound] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const { maxQuantityFor } = useShop();
 
   useEffect(() => {
     async function loadProduct() {
@@ -64,6 +67,7 @@ function ProductDetail() {
     );
   }
 
+  const maxQuantity = maxQuantityFor({ stock: product.stock });
   const images = product.images ?? [];
   // Chaque ligne vide dans la description devient un nouveau paragraphe
   const paragraphs = product.description.split(/\n\s*\n|\n/).filter((p) => p.trim());
@@ -146,30 +150,16 @@ function ProductDetail() {
 
           {/* COMMANDE */}
           <div className="bg-white mt-8 p-6 shadow-sm">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center border border-beige">
-                <button
-                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  aria-label="Diminuer la quantité"
-                  className="w-10 h-10 flex items-center justify-center text-ink hover:text-rose-dark"
-                >
-                  <Minus size={14} />
-                </button>
-                <span className="w-10 text-center text-sm text-ink">{quantity}</span>
-                <button
-                  onClick={() => setQuantity((q) => q + 1)}
-                  aria-label="Augmenter la quantité"
-                  className="w-10 h-10 flex items-center justify-center text-ink hover:text-rose-dark"
-                >
-                  <Plus size={14} />
-                </button>
-              </div>
-              <span className="text-sm font-medium text-ink">
-                {formatPrice(product.price * quantity)}
-              </span>
+            <div className="flex flex-wrap items-center gap-6">
+              <QuantitySelector value={Math.min(quantity, Math.max(1, maxQuantity))} onChange={setQuantity} max={Math.max(1, maxQuantity)} />
+              <span className="text-sm font-medium text-ink">{formatPrice(product.price * quantity)}</span>
             </div>
+            {typeof product.stock === "number" && product.stock > 0 && product.stock <= 5 && (
+              <p className="mt-3 text-xs text-amber-800">Plus que {product.stock} disponible{product.stock > 1 ? "s" : ""}</p>
+            )}
 
-            <AddToCartButton product={product} quantity={quantity} variant="solid" className="mt-5" />
+            <AddToCartButton product={product} quantity={quantity} categoryName={categoryName} variant="solid" className="mt-5" />
+            <p className="mt-3 text-center text-xs text-ink-light">Précommande sans paiement immédiat : nous confirmons avant le retrait.</p>
           </div>
         </div>
       </div>

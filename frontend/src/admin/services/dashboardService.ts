@@ -163,20 +163,25 @@ function buckets(period: Period, range: Range): Bucket[] {
 const time = (iso: string | null | undefined) => (iso ? Date.parse(iso) : 0);
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-function ordersIn(range: Range, { includeCancelled = false } = {}) {
+const fullName = (o: Order) => `${o.customer.firstName} ${o.customer.lastName}`.trim();
+
+// Une vente = une précommande validée par la pâtisserie (ni en attente, ni annulée)
+const isAccepted = (o: Order) => o.status !== "PENDING" && o.status !== "CANCELLED";
+
+function ordersIn(range: Range, { includeAll = false } = {}) {
   return db.orders.filter((o) => {
     const t = time(o.createdAt);
-    return t >= range.start && t <= range.end && (includeCancelled || o.status !== "cancelled");
+    return t >= range.start && t <= range.end && (includeAll || isAccepted(o));
   });
 }
 
 function salesSummary(range: Range) {
   const orders = ordersIn(range);
-  const revenue = orders.reduce((sum, o) => sum + o.total, 0);
+  const revenue = orders.reduce((sum, o) => sum + o.totalAmount, 0);
   return {
     revenue: round2(revenue),
     orders: orders.length,
-    customers: new Set(orders.map((o) => o.customer.id || o.customer.email)).size,
+    customers: new Set(orders.map(customerKey)).size,
     averageBasket: orders.length ? round2(revenue / orders.length) : 0,
   };
 }
@@ -208,13 +213,15 @@ function productSales(range: Range) {
   }));
 }
 
-const customerKey = (o: Order) => o.customer.id || o.customer.email;
+function customerKey(o: Order) {
+  return o.userId || o.customer.email;
+}
 
 // Dates des commandes non annulées de chaque client
 function customerOrderTimes() {
   const map = new Map<string, number[]>();
   for (const order of db.orders) {
-    if (order.status === "cancelled") continue;
+    if (!isAccepted(order)) continue;
     const list = map.get(customerKey(order)) ?? [];
     list.push(time(order.createdAt));
     map.set(customerKey(order), list);
@@ -283,10 +290,10 @@ function customerStatus(createdAt: string, times: number[]): CustomerStatus {
 function customersWithStats(): Customer[] {
   const totals = new Map<string, { count: number; spent: number; last: number }>();
   for (const order of db.orders) {
-    if (order.status === "cancelled") continue;
+    if (!isAccepted(order)) continue;
     const entry = totals.get(customerKey(order)) ?? { count: 0, spent: 0, last: 0 };
     entry.count++;
-    entry.spent += order.total;
+    entry.spent += order.totalAmount;
     entry.last = Math.max(entry.last, time(order.createdAt));
     totals.set(customerKey(order), entry);
   }
@@ -376,11 +383,12 @@ export async function getRecentOrders(limit = 6): Promise<Order[]> {
 
 export async function getOrdersToProcess(): Promise<OrdersToProcess> {
   await ensureLoaded();
-  const count = (statuses: OrderStatus[]) => db.orders.filter((o) => statuses.includes(o.status)).length;
+  const count = (status: OrderStatus) => db.orders.filter((o) => o.status === status).length;
   return respond({
-    pending: count(["pending"]),
-    preparing: count(["confirmed", "preparing"]),
-    ready: count(["ready"]),
+    pending: count("PENDING"),
+    awaitingCustomer: count("AWAITING_CUSTOMER_SELECTION"),
+    toPrepare: count("CONFIRMED"),
+    ready: count("READY_FOR_PICKUP"),
   });
 }
 
@@ -421,20 +429,31 @@ export async function getOrders(query: OrdersQuery = {}): Promise<Paginated<Orde
   const filtered = db.orders.filter((o) => {
     const t = time(o.createdAt);
     return (
-      (status === "all" || o.status === status || (status === "to_prepare" && (o.status === "confirmed" || o.status === "preparing"))) &&
+      (status === "all" || o.status === status || (status === "confirmed_any" && (o.status === "AWAITING_CUSTOMER_SELECTION" || o.status === "CONFIRMED"))) &&
       t >= fromTime &&
       t <= toTime &&
-      (minAmount === undefined || o.total >= minAmount) &&
-      (maxAmount === undefined || o.total <= maxAmount) &&
+      (minAmount === undefined || o.totalAmount >= minAmount) &&
+      (maxAmount === undefined || o.totalAmount <= maxAmount) &&
       (!term ||
-        o.number.toLowerCase().includes(term) ||
-        o.customer.name.toLowerCase().includes(term) ||
+        o.orderNumber.toLowerCase().includes(term) ||
+        (o.pickupCode ?? "").toLowerCase() === term.replace(/[^a-z0-9]/g, "") ||
+        fullName(o).toLowerCase().includes(term) ||
         o.customer.email.toLowerCase().includes(term))
     );
   });
 
   const value = (o: Order) =>
-    sortBy === "total" ? o.total : sortBy === "customer" ? o.customer.name : sortBy === "status" ? o.status : sortBy === "number" ? o.number : o.createdAt;
+    sortBy === "totalAmount"
+      ? o.totalAmount
+      : sortBy === "customer"
+        ? fullName(o)
+        : sortBy === "status"
+          ? o.status
+          : sortBy === "orderNumber"
+            ? o.orderNumber
+            : sortBy === "requestedPickupDate"
+              ? o.requestedPickupDate
+              : o.createdAt;
   filtered.sort((a, b) => {
     const [va, vb] = [value(a), value(b)];
     const cmp = typeof va === "number" && typeof vb === "number" ? va - vb : String(va).localeCompare(String(vb), "fr");
@@ -454,16 +473,9 @@ export async function getOrder(id: string): Promise<Order | null> {
   return respond(db.orders.find((o) => o.id === id) ?? null);
 }
 
-export async function updateOrderStatus(id: string, status: OrderStatus): Promise<Order> {
-  try {
-    const res = await axios.put<Order>(`${ADMIN_ENDPOINT}/orders/${id}/status`, { status }, { headers: await authHeaders() });
-    db.orders = db.orders.map((o) => (o.id === id ? res.data : o));
-    return respond(res.data);
-  } catch (error) {
-    throw new Error(axios.isAxiosError(error) && error.response?.data?.error ? error.response.data.error : "Mise à jour impossible", {
-      cause: error,
-    });
-  }
+// Après une action admin (confirmer, annuler, prête, récupérée) : met à jour le cache local
+export function applyOrderUpdate(order: Order) {
+  db.orders = db.orders.some((o) => o.id === order.id) ? db.orders.map((o) => (o.id === order.id ? order : o)) : [order, ...db.orders];
 }
 
 export async function getCustomers(
@@ -490,7 +502,7 @@ export async function getCustomer(id: string): Promise<CustomerDetail | null> {
   const customer = customersWithStats().find((c) => c.id === id);
   if (!customer) return null;
   const orders = db.orders
-    .filter((o) => o.customer.id === id || (!o.customer.id && o.customer.email === customer.email))
+    .filter((o) => o.userId === id)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   return respond({ ...customer, orders });
 }
@@ -514,16 +526,22 @@ export async function getNotifications(): Promise<AdminNotification[]> {
   const list: AdminNotification[] = [];
 
   recent
-    .filter((o) => o.status === "pending")
-    .slice(0, 5)
+    .filter((o) => o.status === "PENDING")
+    .slice(0, 8)
     .forEach((o) =>
-      list.push({ id: `order-${o.id}`, type: "order", title: "Nouvelle commande reçue", message: `${o.number} · ${o.customer.name}`, createdAt: o.createdAt, read: false, link: `/admin/orders?commande=${o.id}` })
+      list.push({ id: `order-${o.id}`, type: "order", title: "Nouvelle précommande", message: `${o.orderNumber} · ${fullName(o)}`, createdAt: o.createdAt, read: false, link: `/admin/orders?commande=${o.id}` })
     );
   recent
-    .filter((o) => o.status === "ready")
-    .slice(0, 3)
+    .filter((o) => o.slotSelectedAt && o.status === "CONFIRMED" && now - time(o.slotSelectedAt) < 14 * DAY)
+    .slice(0, 8)
     .forEach((o) =>
-      list.push({ id: `ready-${o.id}`, type: "ready", title: "Commande prête", message: `${o.number} · ${o.delivery.mode === "pickup" ? "retrait en boutique" : "à livrer"}`, createdAt: o.createdAt, read: false, link: `/admin/orders?commande=${o.id}` })
+      list.push({ id: `slot-${o.id}`, type: "slot", title: "Créneau choisi par le client", message: `${o.orderNumber} · ${o.selectedSlot?.startTime ?? ""} · à préparer`, createdAt: o.slotSelectedAt ?? o.createdAt, read: false, link: `/admin/orders?commande=${o.id}` })
+    );
+  recent
+    .filter((o) => o.paymentMethod === "PAYPAL" && o.payment?.paidAt && now - time(o.payment.paidAt) < 14 * DAY)
+    .slice(0, 8)
+    .forEach((o) =>
+      list.push({ id: `payment-${o.id}`, type: "payment", title: "Paiement reçu", message: `${o.orderNumber} · PayPal`, createdAt: o.payment?.paidAt, read: false, link: `/admin/orders?commande=${o.id}` })
     );
   db.customers
     .filter((c) => now - time(c.createdAt) < 14 * DAY)
@@ -628,15 +646,15 @@ export async function exportOrdersCsv(period: Period): Promise<string> {
   const categoryOf = new Map(db.products.map((p) => [p.id, p.category]));
   const escape = (value: string | number) => `"${String(value).replace(/"/g, '""')}"`;
   const header = ["Commande", "Date", "Client", "Email", "Articles", "Catégories", "Total (€)", "Paiement", "Statut"];
-  const rows = ordersIn(current, { includeCancelled: true }).map((o) => [
-    o.number,
+  const rows = ordersIn(current, { includeAll: true }).map((o) => [
+    o.orderNumber,
     new Date(o.createdAt).toLocaleString("fr-FR"),
-    o.customer.name,
+    fullName(o),
     o.customer.email,
-    o.items.map((i) => `${i.quantity}× ${i.name}`).join(", "),
-    [...new Set(o.items.map((i) => categoryOf.get(i.productId) ?? ""))].join(", "),
-    o.total.toFixed(2).replace(".", ","),
-    o.paymentMethod,
+    o.items.map((i) => `${i.quantity}× ${i.productName}`).join(", "),
+    [...new Set(o.items.map((i) => i.category || categoryOf.get(i.productId) || ""))].join(", "),
+    o.totalAmount.toFixed(2).replace(".", ","),
+    o.paymentMethod ?? "",
     o.status,
   ]);
   return "﻿" + [header, ...rows].map((r) => r.map(escape).join(";")).join("\n");

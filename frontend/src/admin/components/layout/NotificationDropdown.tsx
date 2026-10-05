@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertTriangle, Bell, CreditCard, PackageCheck, ShoppingBag, UserPlus } from "lucide-react";
+import { AlertTriangle, Bell, CalendarCheck, CreditCard, PackageCheck, ShoppingBag, UserPlus } from "lucide-react";
 import { useNotifications } from "./NotificationsContext";
 import { Skeleton } from "../ui/States";
 import { formatRelative } from "../../utils/format";
@@ -13,6 +13,7 @@ const TYPE_META: Record<NotificationType, { icon: typeof Bell; className: string
   customer: { icon: UserPlus, className: "bg-sky-50 text-sky-700" },
   payment: { icon: CreditCard, className: "bg-emerald-50 text-emerald-700" },
   ready: { icon: PackageCheck, className: "bg-teal-50 text-teal-700" },
+  slot: { icon: CalendarCheck, className: "bg-violet-50 text-violet-700" },
 };
 
 function NotificationDropdown() {

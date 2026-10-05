@@ -9,7 +9,7 @@ const navigation = [
   { to: "/produits", label: "Nos créations" },
   { to: "/#savoir-faire", label: "À propos" },
   { to: "/panier", label: "Panier" },
-  { to: "/login", label: "Mon compte" },
+  { to: "/mes-commandes", label: "Mes commandes" },
 ];
 
 const socials = [

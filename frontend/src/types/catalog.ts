@@ -22,5 +22,7 @@ export interface Product {
   ingredients?: string[];
   isAvailable: boolean;
   servesCount: number;
+  // null ou absent : stock non suivi
+  stock?: number | null;
   createdAt?: FirestoreDate;
 }

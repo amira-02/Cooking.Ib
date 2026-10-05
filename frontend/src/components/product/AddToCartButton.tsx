@@ -1,27 +1,32 @@
 import { useEffect, useState } from "react";
-import { Check, ShoppingBag } from "lucide-react";
+import { AlertCircle, Check, ShoppingBag } from "lucide-react";
 import { useShop } from "../../context/ShopContext";
 import type { Product } from "../../types/catalog";
 
 interface AddToCartButtonProps {
   product: Product;
   quantity?: number;
+  categoryName?: string;
   variant?: "outline" | "solid";
   // Libellé court sur petit écran (cartes en 2 colonnes)
   compact?: boolean;
   className?: string;
 }
 
-// Ajoute au panier et affiche « Ajouté » pendant un court instant
-function AddToCartButton({ product, quantity = 1, variant = "outline", compact = false, className = "" }: AddToCartButtonProps) {
+type Feedback = { kind: "added" } | { kind: "limit"; max: number } | null;
+
+// Ajoute au panier ; affiche « Ajouté » ou la quantité maximale atteinte pendant un court instant
+function AddToCartButton({ product, quantity = 1, categoryName, variant = "outline", compact = false, className = "" }: AddToCartButtonProps) {
   const { addToCart } = useShop();
-  const [added, setAdded] = useState(false);
+  const [feedback, setFeedback] = useState<Feedback>(null);
+  const outOfStock = product.stock === 0;
+  const disabled = !product.isAvailable || outOfStock;
 
   useEffect(() => {
-    if (!added) return;
-    const timer = setTimeout(() => setAdded(false), 1600);
+    if (!feedback) return;
+    const timer = setTimeout(() => setFeedback(null), feedback.kind === "limit" ? 2600 : 1600);
     return () => clearTimeout(timer);
-  }, [added]);
+  }, [feedback]);
 
   const styles =
     variant === "solid"
@@ -31,16 +36,23 @@ function AddToCartButton({ product, quantity = 1, variant = "outline", compact =
   return (
     <button
       type="button"
-      disabled={!product.isAvailable}
+      disabled={disabled}
       onClick={() => {
-        addToCart(product, quantity);
-        setAdded(true);
+        const result = addToCart(product, quantity, categoryName);
+        setFeedback(result.added === 0 ? { kind: "limit", max: result.max } : { kind: "added" });
       }}
+      aria-live="polite"
       className={`flex min-h-11 w-full items-center justify-center gap-2 rounded-full text-[11px] font-medium uppercase tracking-[0.18em] transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-40 ${styles} ${className}`}
     >
-      {!product.isAvailable ? (
+      {outOfStock ? (
+        "Rupture de stock"
+      ) : !product.isAvailable ? (
         "Indisponible"
-      ) : added ? (
+      ) : feedback?.kind === "limit" ? (
+        <>
+          <AlertCircle size={14} /> {compact ? `Max : ${feedback.max}` : `Quantité max : ${feedback.max}`}
+        </>
+      ) : feedback?.kind === "added" ? (
         <>
           <Check size={14} /> Ajouté
         </>

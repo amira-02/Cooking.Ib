@@ -9,15 +9,6 @@ async function getData(req, res) {
   }
 }
 
-async function updateOrderStatus(req, res) {
-  try {
-    const order = await adminService.updateOrderStatus(req.params.id, req.body.status);
-    res.json(order);
-  } catch (error) {
-    res.status(error.status || 500).json({ error: error.message });
-  }
-}
-
 async function track(req, res) {
   try {
     await trackingService.track(req.body.type, req.body.productId);
@@ -27,4 +18,4 @@ async function track(req, res) {
   }
 }
 
-module.exports = { getData, updateOrderStatus, track };
+module.exports = { getData, track };

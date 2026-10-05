@@ -4,9 +4,9 @@
 
 export type Period = "today" | "7d" | "30d" | "3m" | "year";
 
-export type OrderStatus = "pending" | "confirmed" | "preparing" | "ready" | "delivered" | "cancelled";
-
-export type PaymentMethod = "card" | "paypal" | "cash" | "transfer";
+// Les commandes utilisent le modèle unique partagé avec la boutique
+import type { Order, OrderStatus } from "../types/order";
+export type { Order, OrderItem, OrderStatus, PaymentMethod, PaymentStatus, PickupSlot } from "../types/order";
 
 // "untracked" : le stock de ce produit n'est pas renseigné
 export type StockStatus = "in_stock" | "low" | "out" | "untracked";
@@ -63,40 +63,11 @@ export interface StockItem extends CatalogProduct {
   stockStatus: StockStatus;
 }
 
-export interface OrderItem {
-  productId: string;
-  name: string;
-  image: string;
-  quantity: number;
-  unitPrice: number;
-}
-
-export interface OrderCustomer {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-}
-
-export interface Order {
-  id: string;
-  number: string;
-  customer: OrderCustomer;
-  createdAt: string;
-  items: OrderItem[];
-  subtotal: number;
-  shipping: number;
-  total: number;
-  paymentMethod: PaymentMethod;
-  status: OrderStatus;
-  delivery: { mode: "pickup" | "delivery"; address?: string; date: string };
-  note?: string;
-}
-
 export interface OrdersToProcess {
-  pending: number;
-  preparing: number;
-  ready: number;
+  pending: number; // à valider
+  awaitingCustomer: number; // validées, le client doit choisir créneau + paiement
+  toPrepare: number; // créneau choisi, à préparer
+  ready: number; // prêtes, à remettre
 }
 
 export interface Customer {
@@ -123,7 +94,7 @@ export interface CustomerStats {
   evolution: { label: string; total: number; new: number }[];
 }
 
-export type NotificationType = "order" | "stock" | "customer" | "payment" | "ready";
+export type NotificationType = "order" | "stock" | "customer" | "payment" | "ready" | "slot";
 
 export interface AdminNotification {
   id: string;
@@ -181,13 +152,13 @@ export interface AnalyticsData {
 
 export interface OrdersQuery {
   search?: string;
-  // "to_prepare" regroupe les commandes confirmées et en préparation
-  status?: OrderStatus | "all" | "to_prepare";
+  // "confirmed_any" regroupe les commandes validées (en attente du client ou créneau choisi)
+  status?: OrderStatus | "all" | "confirmed_any";
   from?: string;
   to?: string;
   minAmount?: number;
   maxAmount?: number;
-  sortBy?: "number" | "createdAt" | "total" | "customer" | "status";
+  sortBy?: "orderNumber" | "createdAt" | "totalAmount" | "customer" | "status" | "requestedPickupDate";
   sortDir?: "asc" | "desc";
   page?: number;
   pageSize?: number;

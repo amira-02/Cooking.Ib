@@ -4,7 +4,7 @@ const { db } = require("../config/firebase");
 const LOW_STOCK_THRESHOLD = 5;
 const ANALYTICS_DAYS = 400;
 
-const ORDER_STATUSES = ["pending", "confirmed", "preparing", "ready", "delivered", "cancelled"];
+const { serialize } = require("./orderService");
 
 // Timestamp Firestore / Date / chaîne -> chaîne ISO
 function toIso(value) {
@@ -14,53 +14,8 @@ function toIso(value) {
   return String(value);
 }
 
-/*
- * Forme attendue d'un document de la collection « orders » (à écrire par le futur
- * tunnel de commande) :
- * {
- *   number: "CMD-10001",
- *   customer: { id, name, email, phone },
- *   createdAt: Timestamp,
- *   items: [{ productId, name, image, quantity, unitPrice }],
- *   subtotal, shipping, total,           // en euros
- *   paymentMethod: "card" | "paypal" | "cash" | "transfer",
- *   status: "pending" | "confirmed" | "preparing" | "ready" | "delivered" | "cancelled",
- *   delivery: { mode: "pickup" | "delivery", address?, date: Timestamp },
- *   note?: string
- * }
- */
-function mapOrder(doc) {
-  const o = doc.data();
-  return {
-    id: doc.id,
-    number: o.number || doc.id,
-    customer: {
-      id: o.customer?.id || "",
-      name: o.customer?.name || "Client",
-      email: o.customer?.email || "",
-      phone: o.customer?.phone || "",
-    },
-    createdAt: toIso(o.createdAt),
-    items: (o.items || []).map((i) => ({
-      productId: i.productId,
-      name: i.name,
-      image: i.image || "",
-      quantity: Number(i.quantity) || 0,
-      unitPrice: Number(i.unitPrice) || 0,
-    })),
-    subtotal: Number(o.subtotal) || 0,
-    shipping: Number(o.shipping) || 0,
-    total: Number(o.total) || 0,
-    paymentMethod: o.paymentMethod || "card",
-    status: ORDER_STATUSES.includes(o.status) ? o.status : "pending",
-    delivery: {
-      mode: o.delivery?.mode === "delivery" ? "delivery" : "pickup",
-      address: o.delivery?.address || undefined,
-      date: toIso(o.delivery?.date) || toIso(o.createdAt),
-    },
-    note: o.note || undefined,
-  };
-}
+// Les commandes sont écrites par orderService (voir le modèle détaillé dans ce fichier)
+const mapOrder = (doc) => serialize(doc.id, doc.data(), { forAdmin: true });
 
 // Toutes les données réelles nécessaires au dashboard, en une seule requête
 async function getSnapshot() {
@@ -127,21 +82,4 @@ async function getSnapshot() {
   };
 }
 
-async function updateOrderStatus(id, status) {
-  if (!ORDER_STATUSES.includes(status)) {
-    const error = new Error("Statut invalide");
-    error.status = 400;
-    throw error;
-  }
-  const ref = db.collection("orders").doc(id);
-  const doc = await ref.get();
-  if (!doc.exists) {
-    const error = new Error("Commande introuvable");
-    error.status = 404;
-    throw error;
-  }
-  await ref.update({ status });
-  return mapOrder(await ref.get());
-}
-
-module.exports = { getSnapshot, updateOrderStatus };
+module.exports = { getSnapshot };

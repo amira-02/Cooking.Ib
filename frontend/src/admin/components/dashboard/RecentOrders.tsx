@@ -15,7 +15,7 @@ interface RecentOrdersProps {
 }
 
 // Version compacte pour le dashboard : la page Commandes affiche toutes les colonnes
-const COMPACT_KEYS = ["number", "customer", "createdAt", "total", "status"];
+const COMPACT_KEYS = ["orderNumber", "customer", "requestedPickupDate", "totalAmount", "status"];
 const compactColumns = orderColumns.filter((col) => COMPACT_KEYS.includes(col.key));
 
 function RecentOrders({ data, loading, error, onRetry }: RecentOrdersProps) {
